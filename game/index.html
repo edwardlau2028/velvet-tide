@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%237c5cff'/%3E%3Ctext x='8' y='12' font-size='11' text-anchor='middle' fill='white'%3EV%3C/text%3E%3C/svg%3E">
+<title>VELVET TIDE — Solmar</title>
+<style>
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #0b1e26;
+    font-family: "Segoe UI", Arial, sans-serif; color: #fff; }
+  #game { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
+  .hidden { display: none !important; }
+  #hud { position: fixed; inset: 0; pointer-events: none; z-index: 5; }
+  #topbar { position: absolute; top: 12px; right: 14px; text-align: right; }
+  #stars { font-size: 26px; letter-spacing: 4px; color: #9db4ff; text-shadow: 0 2px 6px #000; }
+  #stars .on { color: #ffd23e; }
+  #stars .off { color: rgba(255,255,255,.25); }
+  #money { font-size: 26px; font-weight: 800; color: #7dff9a; text-shadow: 0 2px 6px #000; }
+  #clock { font-size: 13px; color: #ffe9a8; text-shadow: 0 1px 4px #000; margin-top: 2px; }
+  .barWrap { margin-top: 6px; width: 190px; height: 12px; background: rgba(0,0,0,.55);
+    border: 1px solid rgba(255,255,255,.5); border-radius: 6px; margin-left: auto; overflow: hidden; }
+  #healthBar { height: 100%; width: 100%; background: linear-gradient(90deg,#ff5a4e,#ffb03a); }
+  #armorBar { height: 100%; width: 0%; background: linear-gradient(90deg,#7c5cff,#9db4ff); }
+  #respect { font-size: 13px; color: #cfe8ff; text-shadow: 0 1px 4px #000; margin-top: 4px; }
+  #missionBox { position: absolute; top: 12px; left: 12px; max-width: 360px;
+    background: rgba(8,26,34,.78); border-left: 4px solid #7c5cff; border-radius: 6px; padding: 10px 12px; }
+  #missionTitle { font-weight: 800; color: #b7a6ff; font-size: 15px; }
+  #missionText { font-size: 13px; line-height: 1.45; margin-top: 3px; }
+  #missionTimer { font-size: 13px; color: #ff9d9d; font-weight: 700; margin-top: 3px; }
+  #minimapWrap { position: absolute; left: 12px; bottom: 12px; background: rgba(8,26,34,.78);
+    border: 2px solid rgba(255,255,255,.55); border-radius: 8px; padding: 5px; }
+  #minimap { display: block; border-radius: 4px; }
+  #mapLabel { font-size: 11px; color: #cfe8ff; text-align: center; letter-spacing: 2px; }
+  #speedo { position: absolute; right: 16px; bottom: 14px; text-align: right; text-shadow: 0 2px 6px #000; }
+  #speedNum { font-size: 40px; font-weight: 800; line-height: 1; }
+  #speedUnit { font-size: 13px; color: #cfe8ff; }
+  #carName { font-size: 14px; color: #b7a6ff; font-weight: 700; }
+  #feed { position: absolute; left: 50%; top: 14px; transform: translateX(-50%);
+    text-align: center; font-size: 15px; font-weight: 700; text-shadow: 0 2px 6px #000; }
+  #feed div { margin-top: 3px; }
+  #crosshair { position: absolute; left: 50%; top: 50%; width: 18px; height: 18px;
+    transform: translate(-50%,-50%); font-size: 18px; text-align: center; color: #fff;
+    text-shadow: 0 0 4px #000; }
+  #hint { position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%);
+    font-size: 12px; color: rgba(255,255,255,.85); text-shadow: 0 1px 4px #000; white-space: nowrap; }
+  #dialogue { position: absolute; left: 50%; bottom: 64px; transform: translateX(-50%);
+    width: min(620px, 86vw); background: rgba(8,26,34,.88); border-radius: 8px;
+    border: 1px solid rgba(124,92,255,.7); padding: 12px 16px; }
+  #dialogueName { color: #b7a6ff; font-weight: 800; font-size: 14px; }
+  #dialogueText { font-size: 14px; line-height: 1.5; margin-top: 4px; }
+  #dialogueHint { font-size: 11px; color: #9fc6e8; margin-top: 6px; }
+  #damage { position: fixed; inset: 0; pointer-events: none; z-index: 6;
+    box-shadow: inset 0 0 90px 30px rgba(255,0,0,.55); opacity: 0; transition: opacity .15s; }
+  .overlay { position: fixed; inset: 0; z-index: 10; display: flex; align-items: center;
+    justify-content: center; background: linear-gradient(160deg, rgba(20,8,48,.84), rgba(6,30,38,.88)); }
+  .panel { width: min(680px, 92vw); background: rgba(10,32,42,.94); border: 1px solid #7c5cff66;
+    border-radius: 14px; padding: 28px 32px; box-shadow: 0 20px 60px rgba(0,0,0,.6); }
+  .panel h1 { margin: 0; font-size: 52px; letter-spacing: 3px; color: #b7a6ff; line-height: 1; }
+  .panel h1 span { color: #ff6b5e; }
+  .panel h2 { margin: 0 0 4px; font-size: 30px; color: #b7a6ff; }
+  .tagline { color: #9fd8ff; font-size: 15px; margin: 8px 0 16px; }
+  .story { font-size: 14px; line-height: 1.6; color: #e8f2fa; }
+  .story b { color: #b7a6ff; }
+  .btnRow { margin-top: 20px; display: flex; gap: 10px; flex-wrap: wrap; }
+  button { pointer-events: auto; cursor: pointer; font-size: 16px; font-weight: 800;
+    padding: 12px 22px; border-radius: 8px; border: none; color: #fff;
+    background: linear-gradient(180deg,#8f76ff,#5b3df0); }
+  button.secondary { background: #22384c; color: #cfe8ff; border: 1px solid #4a6a86; }
+  button:disabled { opacity: .45; cursor: default; }
+  .controls { margin-top: 18px; font-size: 13px; line-height: 1.9; color: #cfe8ff;
+    columns: 2; column-gap: 28px; }
+  .controls b { color: #fff; background: #22384c; border-radius: 4px; padding: 1px 7px; }
+  .foot { margin-top: 16px; font-size: 11px; color: #7fa8c4; }
+  #testResult { position: fixed; left: 4px; top: 4px; z-index: 50; font-size: 10px; color: #0f0;
+    background: rgba(0,0,0,.6); padding: 2px 6px; max-width: 90vw; }
+</style>
+</head>
+<body>
+<canvas id="game" aria-label="VELVET TIDE: an open-world crime game in Solmar. Drive, steal cars, outrun the police and run missions across the city."></canvas>
+<div id="damage"></div>
+<div id="hud" class="hidden">
+  <div id="missionBox"><div id="missionTitle">SOLMAR</div><div id="missionText"></div><div id="missionTimer"></div></div>
+  <div id="topbar">
+    <div id="stars"></div><div id="money">$0</div><div id="clock"></div>
+    <div class="barWrap"><div id="healthBar"></div></div>
+    <div class="barWrap"><div id="armorBar"></div></div>
+    <div id="respect"></div>
+  </div>
+  <div id="minimapWrap"><canvas id="minimap" width="200" height="200"></canvas><div id="mapLabel">SOLMAR</div></div>
+  <div id="speedo" class="hidden"><div id="carName"></div><div id="speedNum">0</div><div id="speedUnit">mph &nbsp;·&nbsp; E exit &nbsp;·&nbsp; SPACE brake</div></div>
+  <div id="feed"></div>
+  <div id="crosshair" class="hidden">+</div>
+  <div id="dialogue" class="hidden"><div id="dialogueName"></div><div id="dialogueText"></div><div id="dialogueHint">Press ENTER to continue</div></div>
+  <div id="hint">WASD move / drive &nbsp;·&nbsp; SHIFT sprint &nbsp;·&nbsp; E steal car &nbsp;·&nbsp; F punch &nbsp;·&nbsp; CLICK shoot &nbsp;·&nbsp; R radio &nbsp;·&nbsp; C camera &nbsp;·&nbsp; M mute &nbsp;·&nbsp; P pause &nbsp;·&nbsp; S save</div>
+</div>
+
+<div id="startScreen" class="overlay">
+  <div class="panel">
+    <h1>VELVET <span>TIDE</span></h1>
+    <div class="tagline">SOLMAR &nbsp;·&nbsp; a sun-soaked open-world crime story</div>
+    <div class="story">You are <b>Mara Voss</b>, a getaway driver who owes the harbour
+      one last job. The Gull Syndicate owns the docks, the Solmar police own
+      the streets, and one fixer — <b>Silas Crane</b> — is offering you a way
+      out: eight jobs, one harbour heist at the tide's turn, and enough cash
+      to leave Solmar for good. Steal what you need. Lose the heat. Don't
+      get caught. Ten tide coins are hidden around the city — find them all.</div>
+    <div class="btnRow">
+      <button id="btnNew">▶ NEW GAME</button>
+      <button id="btnContinue" class="secondary">CONTINUE</button>
+      <button id="btnHow" class="secondary">CONTROLS</button>
+    </div>
+    <div class="controls" id="controlsList">
+      <div><b>W A S D</b> move / drive</div><div><b>SHIFT</b> sprint</div>
+      <div><b>MOUSE</b> drag to look</div><div><b>E</b> steal / enter / exit car</div>
+      <div><b>F</b> punch</div><div><b>CLICK</b> shoot pistol</div>
+      <div><b>SPACE</b> handbrake</div><div><b>R / 1-3</b> radio station</div>
+      <div><b>C</b> camera distance</div><div><b>P / ESC</b> pause</div>
+      <div><b>M</b> mute sound</div><div><b>S</b> save game</div>
+    </div>
+    <div class="foot">Original game — Solmar, Mara Voss, Silas Crane and every car, street and song are invented here. No network needed; saves on this computer only.</div>
+  </div>
+</div>
+
+<div id="pauseScreen" class="overlay hidden">
+  <div class="panel">
+    <h2>PAUSED</h2>
+    <div class="story">Solmar waits for no one — except right now.</div>
+    <div class="btnRow">
+      <button id="btnResume">RESUME</button>
+      <button id="btnSave" class="secondary">SAVE GAME</button>
+      <button id="btnQuit" class="secondary">QUIT TO TITLE</button>
+    </div>
+    <div class="foot" id="pauseStats"></div>
+  </div>
+</div>
+
+<div id="endScreen" class="overlay hidden">
+  <div class="panel">
+    <h2 id="endTitle">BUSTED</h2>
+    <div class="story" id="endText"></div>
+    <div class="btnRow">
+      <button id="btnRetry">TRY AGAIN</button>
+      <button id="btnEndTitle" class="secondary">TITLE SCREEN</button>
+    </div>
+  </div>
+</div>
+
+<div id="testResult" class="hidden"></div>
+<script src="./vendor/three.min.js"></script>
+<script type="module" src="./src/main.js"></script>
+</body>
+</html>
